@@ -103,7 +103,7 @@ export function DayLine() {
   }, [pph])
 
   useFrameDom((S, t, ctx) => {
-    const o = envAt(t, [17.8, 18.15, 22.45, 22.8])
+    const o = envAt(t, [17.8, 18.15, 22.6, 22.95])
     const e = root.current
     e.style.opacity = o.toFixed(3)
     e.style.visibility = o > 0.002 ? 'visible' : 'hidden'
@@ -187,7 +187,8 @@ export function Clock() {
     const weekO = smooth(range(t, 22.55, 22.9))
     week.current.style.opacity = weekO.toFixed(3)
     if (weekO > 0.002) {
-      const days = (S.hour - 6.2) / 24
+      // the seventh mark fills while Day 7 rests
+      const days = S.dayF - 1 + smooth(range(t, 25.3, 25.8))
       dots.current.forEach((d, i) => {
         if (d) d.style.setProperty('--f', Math.min(1, Math.max(0, days - i)).toFixed(3))
       })
@@ -253,13 +254,19 @@ export function Beyond() {
         eyebrow="Battery"
         live={(S) => `${Math.round((S.batt + (1 - S.batt) * S.charge) * 100)}%`}
       />
-      <Beat at={[22.8, 23.1, 24.1, 24.4]} className="full a-right">
+      <Beat at={[22.85, 23.1, 23.62, 23.88]} className="full a-right">
         <div className="block right-col">
           <div className="eyebrow">07 — Seven days</div>
           <p className="lede">Lifts, grip, sweat, and sleep. Built to stay on through all of it — then refined enough to wear through the rest of your day.</p>
         </div>
       </Beat>
-      <Beat at={[24.5, 24.8, 25.65, 25.95]} className="full a-right">
+      <Beat at={[24.02, 24.28, 24.8, 25.05]} className="full a-right">
+        <div className="block right-col">
+          <div className="eyebrow">Screen-free by design</div>
+          <p className="lede">No notifications. No distractions. Just a week on your wrist — every session, every night of sleep, and every rest day in between.</p>
+        </div>
+      </Beat>
+      <Beat at={[25.2, 25.45, 25.72, 25.98]} className="full a-right">
         <div className="block right-col">
           <h2 className="headline">
             <Ln>7+ days.</Ln>

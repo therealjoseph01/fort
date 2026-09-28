@@ -187,6 +187,9 @@ export const MUSCLES = [
 
 export const BODY = { center: V3() }
 
+// Scene 07 — Day 2 → Day 7: each step holds for H, then transitions over P − H (story time)
+export const WEEK = { T0: 22.78, P: 0.5, H: 0.2, steps: 5 }
+
 /* ------------------------------------------------------------------ */
 /* Scene 06/07 — sky & time of day                                      */
 /* ------------------------------------------------------------------ */
@@ -362,8 +365,8 @@ export function computeState(t, time) {
   S.rigPos.lerp(tmp, w(t, 8.6, 9.4))
   const p5 = tmp2.set(m ? 0.85 : 2.25, m ? -2.25 : -1.15, m ? 1.0 : 1.2)
   S.rigPos.lerp(p5, w(t, 13.4, 14.3))
-  S.rigPos.lerp(tmp.set(0, m ? 1.0 : 0.62, 0), w(t, 17.0, 17.9))
-  S.rigPos.lerp(tmp.set(m ? 0 : -1.05, m ? 0.75 : 0.3, 0), w(t, 22.55, 23.1))
+  S.rigPos.lerp(tmp.set(0, m ? 1.0 : 0.62, 0), w(t, 16.9, 18.0))
+  S.rigPos.lerp(tmp.set(m ? 0 : -1.05, m ? 0.75 : 0.3, 0), w(t, 22.5, 23.25))
   S.rigPos.lerp(tmp.set(m ? 0 : -1.35, m ? 1.2 : 0.05, 0), w(t, 26.0, 27.0))
   // idle float everywhere after the lift
   S.rigPos.y += 0.03 * Math.sin(time * 0.7) * w(t, 17.2, 17.9)
@@ -376,24 +379,25 @@ export function computeState(t, time) {
     [9.3, m ? 0.55 : 0.62],
     [13.4, m ? 0.55 : 0.62],
     [14.3, m ? 0.42 : 0.5],
-    [17.0, m ? 0.42 : 0.5],
-    [17.9, m ? 0.58 : 0.7],
-    [22.6, m ? 0.58 : 0.7],
-    [23.1, m ? 0.62 : 0.85],
+    [16.9, m ? 0.42 : 0.5],
+    [18.0, m ? 0.58 : 0.7],
+    [22.5, m ? 0.58 : 0.7],
+    [23.25, m ? 0.62 : 0.85],
     [26.0, m ? 0.62 : 0.85],
     [27.0, m ? 0.78 : 1.05],
   ])
 
   let ry = kf(t, ROTY)
-  ry = lerp(ry, -0.5 + (t - 13.6) * 0.9, w(t, 13.4, 14.3))
-  // through the week the device turns slowly and steadily, never faster than the scene around it
+  // Scene 05: a slow sway (no full spins), so handing over to Scene 06 never whips around
+  ry = lerp(ry, -0.5 + 0.45 * Math.sin((t - 13.6) * 1.1), w(t, 13.4, 14.3))
+  // through the day and the week the device turns slowly and steadily
   const weekTurn = -0.42 + 0.32 * Math.sin((Math.min(t, 22.6) - 17.2) * 1.15) + 0.35 * cruise(range(t, 22.6, 26.0))
-  ry = lerp(ry, weekTurn + 0.04 * Math.sin(time * 0.5), w(t, 17.0, 17.9))
+  ry = lerp(ry, weekTurn + 0.04 * Math.sin(time * 0.5), w(t, 16.9, 18.0))
   ry = lerp(ry, -0.62 + 0.1 * Math.sin(time * 0.35), w(t, 26.0, 27.0))
   S.rotY = ry
   let rx = kf(t, ROTX)
   rx = lerp(rx, 0.15, w(t, 13.4, 14.3))
-  rx = lerp(rx, 0.12, w(t, 17.0, 17.9))
+  rx = lerp(rx, 0.12, w(t, 16.9, 18.0))
   S.rotX = rx
 
   S.explode = kf(t, [
@@ -456,22 +460,42 @@ export function computeState(t, time) {
   for (let i = 0; i < 10; i++) S.act[i] = lerp(S.act[i], 0.9, allLit) * (1 - out)
 
   /* ---------- time of day ---------- */
-  // Scene 06: one day, 24.4 h. Scene 07: six more days at a constant, unhurried pace
-  // (~45vh of scroll per day) — never the rush of an ease-in-out.
-  const week = cruise(range(t, 22.7, 25.35), 0.18)
-  let hour = 6.2 + range(t, 17.9, 22.5) * 24.4
-  if (t > 22.6) hour = 30.6 + week * 139.9
+  // Scene 06: one day. Dawn and dusk get the most time so light never snaps to dark.
+  let hour = kf(
+    t,
+    [
+      [17.9, 6.2],
+      [18.55, 8.4],
+      [19.15, 13.0],
+      [19.8, 17.2],
+      [20.85, 20.4], // sunset → dusk, slowly
+      [21.55, 24.0],
+      [22.5, 30.6],
+    ],
+    ease.linear,
+  )
   S.hour = hour
-  S.day = Math.floor((hour - 6.2) / 24) + 1
   S.night = nightAt(hour)
-  // "calm" damps the day/night swings while days pass quickly, so the week reads as a
-  // gentle breathing of light rather than a strobe
-  const calm = 0.72 * w(t, 22.4, 22.85) * (1 - w(t, 25.3, 25.9))
+
+  // Scene 07: the week. No day/night cycling — the sky holds a calm evening tone while each
+  // day rests for a moment, then eases into the next (one step ≈ one screen of scroll).
+  const calm = w(t, 22.4, 22.85) * (1 - w(t, 26.0, 26.6))
+  let wd = 2
+  let pulse = 0 // a soft "new morning" breath during each day change
+  for (let k = 0; k < WEEK.steps; k++) {
+    const a = WEEK.T0 + k * WEEK.P + WEEK.H
+    const b = WEEK.T0 + (k + 1) * WEEK.P
+    const x = range(t, a, b)
+    wd += smooth(x)
+    pulse += Math.sin(Math.PI * x)
+  }
+  S.dayF = t > 22.6 ? wd : 1 + clamp((hour - 6.2) / 24)
+  S.day = t > 22.6 ? Math.floor(wd + 0.5) : Math.floor((hour - 6.2) / 24) + 1
   S.pStar = lerp(S.night, 0.6, calm) * w(t, 17.4, 18.0) * (1 - w(t, 26.0, 26.5))
 
   /* ---------- battery ---------- */
   S.battA = envAt(t, [22.55, 22.8, 25.95, 26.3])
-  S.batt = 1 - 0.91 * week
+  S.batt = 1 - 0.91 * ((wd - 2) / WEEK.steps)
   S.charge = w(t, 25.55, 25.95)
 
   /* ---------- lighting ---------- */
@@ -550,7 +574,7 @@ export function computeState(t, time) {
   S.bgTop.lerp(P.d5t, x); S.bgBot.lerp(P.d5b, x)
   if (w6 > 0) {
     skyAt(hour, tA, tB)
-    const skyCalm = Math.min(1, calm * 1.28)
+    const skyCalm = calm * (1 - 0.12 * pulse)
     tA.lerp(P.neutralT, skyCalm); tB.lerp(P.neutralB, skyCalm)
     S.bgTop.lerp(tA, w6); S.bgBot.lerp(tB, w6)
   }
@@ -559,7 +583,7 @@ export function computeState(t, time) {
   const lum = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
   const lm = 0.4 * lum(S.bgTop) + 0.6 * lum(S.bgBot)
   // text stays light through the week so it never flickers between light and dark
-  S.inkLight = lerp(1 - smooth(range(lm, 0.14, 0.32)), 1, Math.min(1, calm / 0.72))
+  S.inkLight = lerp(1 - smooth(range(lm, 0.14, 0.32)), 1, calm)
   S.ink.copy(P.inkDark).lerp(P.inkLight, S.inkLight)
   S.accent.copy(P.oxblood).lerp(P.ember, S.inkLight)
 
@@ -575,14 +599,14 @@ export function computeState(t, time) {
     const up = Math.sin(Math.PI * df)
     const nf = S.night
     // during the week the glow settles behind the device instead of racing across the sky
-    const sx = lerp(lerp(0.12 + 0.76 * df, 0.78, nf), m ? 0.5 : 0.36, calm / 0.72)
-    const sy = lerp(lerp(0.8 - 0.58 * up, 0.2, nf), m ? 0.36 : 0.46, calm / 0.72)
+    const sx = lerp(lerp(0.12 + 0.76 * df, 0.78, nf), m ? 0.5 : 0.36, calm)
+    const sy = lerp(lerp(0.8 - 0.58 * up, 0.2, nf), m ? 0.36 : 0.46, calm)
     tA.copy(P.glowSun).lerp(P.amber, Math.min(1, gauss(hm, 18.9, 0.7) + 0.5 * gauss(hm, 6.4, 0.5))).lerp(P.glowMoon, nf)
     tA.lerp(P.glowMoon, calm)
     S.glowColor.lerp(tA, w6)
     S.glowX = lerp(S.glowX, sx, w6)
     S.glowY = lerp(S.glowY, sy, w6)
-    ga = lerp(ga, lerp(lerp(0.55 + 0.25 * (1 - up), 0.3, nf), 0.34, calm), w6)
+    ga = lerp(ga, lerp(lerp(0.55 + 0.25 * (1 - up), 0.3, nf), 0.34 + 0.12 * pulse, calm), w6)
     S.glowR = lerp(S.glowR, 0.45, w6)
   }
   S.glowColor.lerp(P.glowStudio, w8)

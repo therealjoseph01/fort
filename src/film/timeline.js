@@ -1,4 +1,5 @@
-// The film is one continuous timeline measured in "screens": 1 unit = 100vh of scroll.
+// The film is one continuous timeline measured in "story time" (roughly: screens).
+// All choreography is written in story time; PACE below decides how much scroll each part gets.
 export const TOTAL = 29.3
 
 export const SCENES = [
@@ -17,6 +18,63 @@ export const lerp = (a, b, t) => a + (b - a) * t
 export const range = (t, a, b) => (b === a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a)))
 export const smooth = (x) => x * x * (3 - 2 * x)
 export const w = (t, a, b) => smooth(range(t, a, b))
+
+/*
+  PACE — slow-motion zones. [storyStart, storyEnd, factor]: that stretch of the film gets
+  `factor`× more scroll distance, so it plays slower under the same scroll. Edges blend
+  smoothly (no sudden change of speed). Raise a factor to slow a moment further.
+*/
+export const PACE = [
+  [7.15, 7.95, 1.6], // 03 · device turns over to show the sensors
+  [8.55, 9.45, 1.5], // 03 → 04 · reassembles and moves to the wrist
+  [9.95, 12.05, 1.3], // 04 · the reps
+  [13.35, 14.35, 1.5], // 04 → 05 · moves aside as the body forms
+  [15.25, 15.65, 1.6], // 05 · body turns to show the back
+  [16.2, 16.6, 1.6], // 05 · body turns back
+  [16.9, 17.9, 1.8], // 05 → 06 · returns to centre, dawn breaks
+  [17.9, 22.5, 1.7], // 06 · a full day: light to dark
+  [22.5, 26.0, 2.0], // 07 · the week
+  [26.0, 27.1, 1.7], // 07 → 08 · moves into the studio
+]
+const PACE_RAMP = 0.25
+const PACE_STEP = 0.004
+const paceAt = (s) => {
+  let k = 1
+  for (const [a, b, f] of PACE) {
+    const box = smooth(range(s, a - PACE_RAMP, a + PACE_RAMP)) * (1 - smooth(range(s, b - PACE_RAMP, b + PACE_RAMP)))
+    k += (f - 1) * box
+  }
+  return k
+}
+// scrollOf[i] = scroll distance (screens) needed to reach story time i * PACE_STEP
+const N_PACE = Math.ceil(TOTAL / PACE_STEP) + 1
+const scrollOf = new Float32Array(N_PACE)
+for (let i = 1; i < N_PACE; i++) scrollOf[i] = scrollOf[i - 1] + PACE_STEP * paceAt((i - 0.5) * PACE_STEP)
+
+// total scroll length of the film, in screens
+export const SCROLL_TOTAL = scrollOf[N_PACE - 1]
+
+// story time → scroll position (screens)
+export function unwarp(story) {
+  const f = clamp(story / PACE_STEP, 0, N_PACE - 1)
+  const i = Math.min(Math.floor(f), N_PACE - 2)
+  return scrollOf[i] + (scrollOf[i + 1] - scrollOf[i]) * (f - i)
+}
+
+// scroll position (screens) → story time
+export function warp(scroll) {
+  if (scroll <= 0) return 0
+  if (scroll >= SCROLL_TOTAL) return TOTAL
+  let lo = 0
+  let hi = N_PACE - 1
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (scrollOf[mid] < scroll) lo = mid
+    else hi = mid
+  }
+  const x = (scroll - scrollOf[lo]) / (scrollOf[hi] - scrollOf[lo] || 1)
+  return (lo + x) * PACE_STEP
+}
 
 export const ease = {
   linear: (x) => x,

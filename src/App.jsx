@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import { film } from './film/store'
-import { TOTAL } from './film/timeline'
+import { SCROLL_TOTAL, warp } from './film/timeline'
 import { Stage } from './three/Stage'
 import { Backdrop } from './overlay/primitives'
 import { Mystery, Reveal, Inside, Intelligence, Worn } from './overlay/Scenes'
@@ -24,7 +24,8 @@ function useFilm() {
     const loop = (time) => {
       lenis.raf(time)
       const y = lenis.animatedScroll ?? window.scrollY
-      film.t = Math.min(TOTAL, Math.max(0, y / film.vh))
+      // scroll → story time, through the PACE slow-motion zones
+      film.t = warp(y / film.vh)
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
@@ -79,7 +80,7 @@ export default function App() {
         <Finale />
       </div>
       <Chrome />
-      <div className="film-spacer" style={{ height: (TOTAL + 1) * vh }} />
+      <div className="film-spacer" style={{ height: (SCROLL_TOTAL + 1) * vh }} />
       <Coda />
     </>
   )

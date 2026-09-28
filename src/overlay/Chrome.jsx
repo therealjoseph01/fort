@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
 import { useFrameDom } from './primitives'
-import { SCENES, TOTAL, sceneIndexAt, range } from '../film/timeline'
+import { SCENES, TOTAL, SCROLL_TOTAL, sceneIndexAt, range, unwarp } from '../film/timeline'
 import { film } from '../film/store'
 import { LINKS, PRICE, SITE } from '../config'
 
+// jump to a moment in story time
 export function jumpTo(t) {
-  const y = t * film.vh
+  const y = unwarp(t) * film.vh
   const lenis = film.lenis
   if (lenis) {
     const dist = Math.abs(y - lenis.scroll) / film.vh
@@ -37,7 +38,7 @@ export function Chrome() {
       lastTc.current = s
       tc.current.textContent = s
     }
-    const past = range(window.scrollY / film.vh, TOTAL + 0.05, TOTAL + 0.5)
+    const past = range(window.scrollY / film.vh, SCROLL_TOTAL + 0.05, SCROLL_TOTAL + 0.5)
     rail.current.style.opacity = (1 - past).toFixed(3)
     rail.current.style.pointerEvents = past > 0.5 ? 'none' : ''
     const inCoda = past > 0.5
