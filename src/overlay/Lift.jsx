@@ -14,7 +14,7 @@ import { envAt, range, ease } from '../film/timeline'
 const pad = (n) => String(n).padStart(2, '0')
 const tmp = new THREE.Vector3()
 
-// a point on the path of rep i at phase u (0 → start, 0.42 → top)
+// a point on the path of rep i at phase u (0 → start, LIFT.UP → top)
 const onRep = (i, u) => (out) => {
   liftAt(LIFT.starts[i] + LIFT.durs[i] * u, tmp)
   out.copy(tmp)
@@ -89,36 +89,35 @@ export function Lift() {
         </div>
       </Beat>
 
+      {/* pinned in a quiet column to the right, so the moving device never covers them */}
       <Tag
         at={[10.05, 10.25, 11.95, 12.15]}
-        anchor={(o, S) => o.copy(S.rigPos).add({ x: 0.42, y: 0.42, z: 0 })}
-        side={['right', 'left']}
-        dx={[60, -70]}
-        dy={[-50, -70]}
+        anchor={(o, S) => o.copy(S.rigPos)}
+        col={[0.7, 0.06]}
+        row={[0.2, 0.7]}
+        leader={[true, false]}
         eyebrow="Exercise detected"
         title="Dumbbell curl"
       />
 
-      {/* velocity readout beside the top of the arc, one line per rep */}
+      {/* velocity readout, one line per rep as it happens */}
       <Tag
-        at={[LIFT.apexT[0] - 0.02, LIFT.apexT[0] + 0.05, 12.1, 12.35]}
+        at={[LIFT.apexT[0] - 0.03, LIFT.apexT[0] + 0.03, 12.1, 12.35]}
         anchor={(o) => o.copy(LIFT.apex[0])}
+        col={[0.7, 0.54]}
+        row={[0.36, 0.7]}
         leader={false}
-        side="left"
-        dx={[-140, -70]}
-        dy={[-66, -60]}
         eyebrow="Rep velocity"
         className="tag-vel"
       />
-      {LIFT.vel.slice(0, 3).map((v, i) => (
+      {LIFT.vel.map((v, i) => (
         <Tag
           key={i}
-          at={[LIFT.apexT[i] - 0.02, LIFT.apexT[i] + 0.05, 12.1, 12.35]}
-          anchor={(o) => o.copy(LIFT.apex[0])}
+          at={[LIFT.apexT[i] - 0.03, LIFT.apexT[i] + 0.03, 12.1, 12.35]}
+          anchor={(o) => o.copy(LIFT.apex[i])}
+          col={[0.7, 0.54]}
+          row={[0.4 + i * 0.034, 0.735 + i * 0.026]}
           leader={false}
-          side="left"
-          dx={[-140, -70]}
-          dy={[-44 + i * 20, -40 + i * 18]}
           className="tag-vel first"
         >
           <span className="rep-i">{pad(i + 1)}</span>
@@ -136,7 +135,7 @@ export function Lift() {
         dy={[-56, -50]}
         className="tag-center wide"
         eyebrow="Set 01 of 04"
-        title="8 reps · 25 lb"
+        title="6 reps · 25 lb"
       />
       <Tag
         at={[12.15, 12.3, 13.25, 13.5]}
@@ -153,7 +152,7 @@ export function Lift() {
       />
 
       {/* the set, understood */}
-      <Tag at={[12.55, 12.72, 13.25, 13.5]} anchor={(o) => o.copy(LIFT.apex[7])} col={[0.66, 0.06]} row={[0.3, 0.64]} leader={[true, false]} eyebrow="Rep velocity" title="0.72 → 0.48 m/s">
+      <Tag at={[12.55, 12.72, 13.25, 13.5]} anchor={(o) => o.copy(LIFT.apex[LIFT.apex.length - 1])} col={[0.66, 0.06]} row={[0.3, 0.64]} leader={[true, false]} eyebrow="Rep velocity" title="0.72 → 0.48 m/s">
         Down 33% from the first rep to the last.
       </Tag>
       <Tag at={[12.62, 12.8, 13.25, 13.5]} anchor={onRep(2, 0.24)} col={[0.66, 0.54]} row={[0.45, 0.64]} leader={[true, false]} eyebrow="Rep cadence" title="1.1 s up · 1.9 s down" />

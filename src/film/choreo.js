@@ -10,7 +10,7 @@ import { kf, kfv, range, clamp, lerp, smooth, w, ease, envAt, cruise } from './t
   01 Mystery      0.0 – 2.4   darkness, a light sweep travels across the device
   02 Reveal       2.4 – 5.0   full light, device turns toward camera, headline around it
   03 Inside       5.0 – 8.6   camera pushes in, strap releases, exploded view, flip to sensors
-  04 Lift         8.6 – 13.6  reassemble, strap wraps a wrist, 8 reps, set/rest/metrics
+  04 Lift         8.6 – 13.6  reassemble, strap wraps a wrist, 6 reps, set/rest/metrics
   05 Intelligence 13.6 – 17.2 lift trail becomes a body; muscle groups illuminate
   06 Beyond       17.2 – 22.6 dawn → day → dusk → night → sleep; health signals on a 24h line
   07 Seven Days   22.6 – 26.0 six more days pass, calmly, on one charge
@@ -94,11 +94,13 @@ export const S = {
 /* ------------------------------------------------------------------ */
 /* Scene 04 — the lift                                                  */
 /* ------------------------------------------------------------------ */
+// Six unhurried, equal reps (PACE gives each ≈0.85 screen of scroll). UP = share of a rep spent lifting.
 export const LIFT = {
   T0: 9.95,
-  durs: [0.4, 0.4, 0.4, 0.18, 0.18, 0.18, 0.18, 0.18],
-  tops: [100, 101.5, 103, 104.5, 106, 108, 110, 112],
-  vel: [0.72, 0.7, 0.67, 0.64, 0.61, 0.57, 0.53, 0.48],
+  durs: [0.35, 0.35, 0.35, 0.35, 0.35, 0.35],
+  UP: 0.45,
+  tops: [],
+  vel: [0.72, 0.69, 0.65, 0.6, 0.54, 0.48],
   starts: [],
   apexT: [],
   apex: [],
@@ -125,7 +127,8 @@ export function liftAt(t, out) {
       if (t < L.starts[i] + L.durs[i]) {
         rep = i
         const u = (t - L.starts[i]) / L.durs[i]
-        a = u < 0.42 ? ease.inOut(u / 0.42) : 1 - ease.inOut((u - 0.42) / 0.58)
+        // sine easing: soft starts and stops, no sudden burst of speed mid-lift
+        a = u < L.UP ? ease.sine(u / L.UP) : 1 - ease.sine((u - L.UP) / (1 - L.UP))
         top = L.tops[i]
         break
       }
@@ -144,8 +147,8 @@ function buildLift() {
   L.elbow.set(m ? 0.55 : 1.15, m ? -1.6 : -1.55, 0)
   L.R = m ? 1.5 : 2.55
   L.th0 = (m ? 174 : 170) * DEG
-  // range of motion shrinks slightly as the set approaches failure
-  L.tops = m ? [100, 102, 104, 107, 110, 113, 117, 121] : [95, 97, 99, 102, 105, 109, 113, 118]
+  // a calmer swing; range of motion shrinks slightly as the set approaches failure
+  L.tops = m ? [106, 108, 110, 113, 116, 120] : [102, 104, 106, 109, 112, 116]
   let s = L.T0
   L.starts = L.durs.map((d) => {
     const v = s
@@ -153,7 +156,7 @@ function buildLift() {
     return v
   })
   L.END = s
-  L.apexT = L.starts.map((st, i) => st + L.durs[i] * 0.42)
+  L.apexT = L.starts.map((st, i) => st + L.durs[i] * L.UP)
   L.apex = L.apexT.map((ta) => {
     const v = V3()
     liftAt(ta, v)
@@ -371,7 +374,8 @@ export function computeState(t, time) {
   // idle float everywhere after the lift
   S.rigPos.y += 0.03 * Math.sin(time * 0.7) * w(t, 17.2, 17.9)
 
-  S.rigRotZ = (lift.th - LIFT.th0) * w(t, 8.6, 9.4)
+  // the band tilts with the forearm, but only partly — less whipping at the top of each rep
+  S.rigRotZ = (lift.th - LIFT.th0) * 0.7 * w(t, 8.6, 9.4)
 
   S.rigScale = kf(t, [
     [0, 1],

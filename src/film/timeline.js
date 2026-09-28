@@ -27,7 +27,7 @@ export const w = (t, a, b) => smooth(range(t, a, b))
 export const PACE = [
   [7.15, 7.95, 1.6], // 03 · device turns over to show the sensors
   [8.55, 9.45, 1.5], // 03 → 04 · reassembles and moves to the wrist
-  [9.95, 12.05, 1.3], // 04 · the reps
+  [9.95, 12.05, 2.4], // 04 · the reps (≈0.85 screen per rep)
   [13.35, 14.35, 1.5], // 04 → 05 · moves aside as the body forms
   [15.25, 15.65, 1.6], // 05 · body turns to show the back
   [16.2, 16.6, 1.6], // 05 · body turns back
