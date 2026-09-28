@@ -1,5 +1,5 @@
 // The film is one continuous timeline measured in "screens": 1 unit = 100vh of scroll.
-export const TOTAL = 28.5
+export const TOTAL = 29.3
 
 export const SCENES = [
   { id: 'mystery', n: '01', name: 'Mystery', start: 0, end: 2.4, jump: 0 },
@@ -8,8 +8,8 @@ export const SCENES = [
   { id: 'lift', n: '04', name: 'You Lift', start: 8.6, end: 13.6, jump: 9.3 },
   { id: 'intel', n: '05', name: 'Strength Intelligence', start: 13.6, end: 17.2, jump: 14.35 },
   { id: 'beyond', n: '06', name: 'Beyond the Workout', start: 17.2, end: 22.6, jump: 17.75 },
-  { id: 'endure', n: '07', name: 'Seven Days', start: 22.6, end: 25.2, jump: 22.9 },
-  { id: 'fort', n: '08', name: 'Fort', start: 25.2, end: TOTAL, jump: 27.95 },
+  { id: 'endure', n: '07', name: 'Seven Days', start: 22.6, end: 26.0, jump: 22.9 },
+  { id: 'fort', n: '08', name: 'Fort', start: 26.0, end: TOTAL, jump: 28.75 },
 ]
 
 export const clamp = (x, a = 0, b = 1) => (x < a ? a : x > b ? b : x)
@@ -24,6 +24,20 @@ export const ease = {
   out: (x) => 1 - Math.pow(1 - x, 3),
   in: (x) => x * x * x,
   sine: (x) => -(Math.cos(Math.PI * x) - 1) / 2,
+}
+
+// Constant speed through the middle, gently eased at both ends (e = share of the range used by each ramp).
+// Peak speed is only 1/(1-e) of the average, so nothing suddenly rushes when scrolling fast.
+export function cruise(x, e = 0.15) {
+  const v = 1 / (1 - e)
+  if (x <= 0) return 0
+  if (x >= 1) return 1
+  if (x < e) return (v / (2 * e)) * x * x
+  if (x > 1 - e) {
+    const y = 1 - x
+    return 1 - (v / (2 * e)) * y * y
+  }
+  return v * (x - e / 2)
 }
 
 // Keyframes: [[t0, v0], [t1, v1, easeFn?], ...]

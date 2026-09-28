@@ -168,7 +168,7 @@ export function Intelligence() {
 export function Worn() {
   return (
     <>
-      <Beat at={[25.5, 25.85, 26.3, 26.6]} className="full a-right">
+      <Beat at={[26.3, 26.65, 27.1, 27.4]} className="full a-right">
         <div className="block right-col">
           <div className="eyebrow">08 — Fort</div>
           <h2 className="headline">
@@ -178,7 +178,7 @@ export function Worn() {
           <p className="lede">A stainless steel body. A minimal form. Designed to live with your jewelry, your watch, and your daily routine.</p>
         </div>
       </Beat>
-      <Beat at={[26.5, 26.8, 27.3, 27.58]} className="full a-right">
+      <Beat at={[27.3, 27.6, 28.1, 28.38]} className="full a-right">
         <div className="block right-col">
           <p className="manifesto">
             <Ln>Not another smartwatch.</Ln>

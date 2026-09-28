@@ -174,13 +174,24 @@ export function Clock() {
   const time = useRef()
   const ap = useRef()
   const day = useRef()
+  const week = useRef()
+  const dots = useRef([])
   const last = useRef('')
   useFrameDom((S, t) => {
-    const o = envAt(t, [18.1, 18.35, 24.55, 24.9])
+    const o = envAt(t, [18.1, 18.35, 25.45, 25.8])
     const e = root.current
     e.style.opacity = o.toFixed(3)
     e.style.visibility = o > 0.002 ? 'visible' : 'hidden'
     if (o <= 0.002) return
+    // seven marks that fill continuously as the week passes — motion without jumps
+    const weekO = smooth(range(t, 22.55, 22.9))
+    week.current.style.opacity = weekO.toFixed(3)
+    if (weekO > 0.002) {
+      const days = (S.hour - 6.2) / 24
+      dots.current.forEach((d, i) => {
+        if (d) d.style.setProperty('--f', Math.min(1, Math.max(0, days - i)).toFixed(3))
+      })
+    }
     const [tm, a] = fmtTime(S.hour)
     const inWeek = t > 22.62
     const dayIdx = Math.min(7, Math.max(1, S.day))
@@ -190,7 +201,11 @@ export function Clock() {
     if (inWeek) {
       time.current.textContent = `Day ${dayIdx}`
       ap.current.textContent = ''
-      day.current.textContent = `${DAYS[(dayIdx - 1) % 7]} · ${tm} ${a}`
+      day.current.textContent = DAYS[(dayIdx - 1) % 7]
+      // soft crossfade on each new day instead of a hard swap
+      time.current.classList.remove('tick')
+      void time.current.offsetWidth
+      time.current.classList.add('tick')
     } else {
       time.current.textContent = tm
       ap.current.textContent = a
@@ -205,6 +220,11 @@ export function Clock() {
       </div>
       <div className="clock-d eyebrow" ref={day}>
         Monday
+      </div>
+      <div className="week" ref={week} aria-hidden="true">
+        {Array.from({ length: 7 }, (_, i) => (
+          <i key={i} ref={(el) => (dots.current[i] = el)} />
+        ))}
       </div>
     </div>
   )
@@ -224,7 +244,7 @@ export function Beyond() {
         </div>
       </Beat>
       <Tag
-        at={[22.65, 22.9, 24.9, 25.2]}
+        at={[22.65, 22.9, 25.7, 26.0]}
         anchor={(o, S) => o.copy(S.rigPos).add({ x: 0, y: -1.43 * S.rigScale, z: 0 })}
         leader={false}
         dx={[-50, -50]}
@@ -233,13 +253,13 @@ export function Beyond() {
         eyebrow="Battery"
         live={(S) => `${Math.round((S.batt + (1 - S.batt) * S.charge) * 100)}%`}
       />
-      <Beat at={[22.75, 23.0, 23.7, 23.95]} className="full a-right">
+      <Beat at={[22.8, 23.1, 24.1, 24.4]} className="full a-right">
         <div className="block right-col">
           <div className="eyebrow">07 — Seven days</div>
           <p className="lede">Lifts, grip, sweat, and sleep. Built to stay on through all of it — then refined enough to wear through the rest of your day.</p>
         </div>
       </Beat>
-      <Beat at={[23.95, 24.25, 24.95, 25.2]} className="full a-right">
+      <Beat at={[24.5, 24.8, 25.65, 25.95]} className="full a-right">
         <div className="block right-col">
           <h2 className="headline">
             <Ln>7+ days.</Ln>

@@ -12,7 +12,7 @@ export function Finale() {
   const live = useRef(false)
 
   useFrameDom((S, t) => {
-    const o = envAt(t, [27.45, 27.85, 999, 1000])
+    const o = envAt(t, [28.25, 28.65, 999, 1000])
     const e = el.current
     e.style.setProperty('--p', o.toFixed(4))
     e.style.visibility = o > 0.002 ? 'visible' : 'hidden'

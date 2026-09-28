@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { kf, kfv, range, clamp, lerp, smooth, w, ease, envAt } from './timeline'
+import { kf, kfv, range, clamp, lerp, smooth, w, ease, envAt, cruise } from './timeline'
 
 /*
   THE DIRECTOR'S SCRIPT
@@ -13,8 +13,8 @@ import { kf, kfv, range, clamp, lerp, smooth, w, ease, envAt } from './timeline'
   04 Lift         8.6 – 13.6  reassemble, strap wraps a wrist, 8 reps, set/rest/metrics
   05 Intelligence 13.6 – 17.2 lift trail becomes a body; muscle groups illuminate
   06 Beyond       17.2 – 22.6 dawn → day → dusk → night → sleep; health signals on a 24h line
-  07 Seven Days   22.6 – 25.2 six more days fly by on one charge
-  08 Fort         25.2 – 28.5 studio light, manifesto, finish configurator, reserve
+  07 Seven Days   22.6 – 26.0 six more days pass, calmly, on one charge
+  08 Fort         26.0 – 29.3 studio light, manifesto, finish configurator, reserve
 */
 
 const DEG = Math.PI / 180
@@ -264,8 +264,8 @@ const CAM = [
   [14.3, [0, 0.1, 9.8]],
   [17.0, [0, 0.1, 9.9]],
   [17.9, [0, 0.2, 9.0]],
-  [25.2, [0, 0.2, 9.0]],
-  [26.2, [0, 0.1, 8.6]],
+  [26.0, [0, 0.2, 9.0]],
+  [27.0, [0, 0.1, 8.6]],
 ]
 const TGT = [
   [0, [0, 0, 0]],
@@ -290,8 +290,8 @@ const CAM_M = [
   [14.3, [0, 0.1, 12.6]],
   [17.0, [0, 0.1, 12.6]],
   [17.9, [0, 0.2, 12.4]],
-  [25.2, [0, 0.2, 12.4]],
-  [26.2, [0, 0.1, 12.2]],
+  [26.0, [0, 0.2, 12.4]],
+  [27.0, [0, 0.1, 12.2]],
 ]
 const TGT_M = [
   [0, [0, 0, 0]],
@@ -364,7 +364,7 @@ export function computeState(t, time) {
   S.rigPos.lerp(p5, w(t, 13.4, 14.3))
   S.rigPos.lerp(tmp.set(0, m ? 1.0 : 0.62, 0), w(t, 17.0, 17.9))
   S.rigPos.lerp(tmp.set(m ? 0 : -1.05, m ? 0.75 : 0.3, 0), w(t, 22.55, 23.1))
-  S.rigPos.lerp(tmp.set(m ? 0 : -1.35, m ? 1.2 : 0.05, 0), w(t, 25.2, 26.2))
+  S.rigPos.lerp(tmp.set(m ? 0 : -1.35, m ? 1.2 : 0.05, 0), w(t, 26.0, 27.0))
   // idle float everywhere after the lift
   S.rigPos.y += 0.03 * Math.sin(time * 0.7) * w(t, 17.2, 17.9)
 
@@ -380,14 +380,16 @@ export function computeState(t, time) {
     [17.9, m ? 0.58 : 0.7],
     [22.6, m ? 0.58 : 0.7],
     [23.1, m ? 0.62 : 0.85],
-    [25.2, m ? 0.62 : 0.85],
-    [26.2, m ? 0.78 : 1.05],
+    [26.0, m ? 0.62 : 0.85],
+    [27.0, m ? 0.78 : 1.05],
   ])
 
   let ry = kf(t, ROTY)
   ry = lerp(ry, -0.5 + (t - 13.6) * 0.9, w(t, 13.4, 14.3))
-  ry = lerp(ry, -0.42 + 0.32 * Math.sin((t - 17.2) * 1.15) + 0.04 * Math.sin(time * 0.5), w(t, 17.0, 17.9))
-  ry = lerp(ry, -0.62 + 0.1 * Math.sin(time * 0.35), w(t, 25.2, 26.2))
+  // through the week the device turns slowly and steadily, never faster than the scene around it
+  const weekTurn = -0.42 + 0.32 * Math.sin((Math.min(t, 22.6) - 17.2) * 1.15) + 0.35 * cruise(range(t, 22.6, 26.0))
+  ry = lerp(ry, weekTurn + 0.04 * Math.sin(time * 0.5), w(t, 17.0, 17.9))
+  ry = lerp(ry, -0.62 + 0.1 * Math.sin(time * 0.35), w(t, 26.0, 27.0))
   S.rotY = ry
   let rx = kf(t, ROTX)
   rx = lerp(rx, 0.15, w(t, 13.4, 14.3))
@@ -454,17 +456,23 @@ export function computeState(t, time) {
   for (let i = 0; i < 10; i++) S.act[i] = lerp(S.act[i], 0.9, allLit) * (1 - out)
 
   /* ---------- time of day ---------- */
+  // Scene 06: one day, 24.4 h. Scene 07: six more days at a constant, unhurried pace
+  // (~45vh of scroll per day) — never the rush of an ease-in-out.
+  const week = cruise(range(t, 22.7, 25.35), 0.18)
   let hour = 6.2 + range(t, 17.9, 22.5) * 24.4
-  if (t > 22.6) hour = 30.6 + ease.inOut(range(t, 22.6, 24.5)) * 139.9
+  if (t > 22.6) hour = 30.6 + week * 139.9
   S.hour = hour
   S.day = Math.floor((hour - 6.2) / 24) + 1
   S.night = nightAt(hour)
-  S.pStar = S.night * w(t, 17.4, 18.0) * (1 - w(t, 25.2, 25.7))
+  // "calm" damps the day/night swings while days pass quickly, so the week reads as a
+  // gentle breathing of light rather than a strobe
+  const calm = 0.72 * w(t, 22.4, 22.85) * (1 - w(t, 25.3, 25.9))
+  S.pStar = lerp(S.night, 0.6, calm) * w(t, 17.4, 18.0) * (1 - w(t, 26.0, 26.5))
 
   /* ---------- battery ---------- */
-  S.battA = envAt(t, [22.55, 22.8, 25.15, 25.5])
-  S.batt = 1 - 0.91 * ease.inOut(range(t, 22.6, 24.5))
-  S.charge = w(t, 24.85, 25.3)
+  S.battA = envAt(t, [22.55, 22.8, 25.95, 26.3])
+  S.batt = 1 - 0.91 * week
+  S.charge = w(t, 25.55, 25.95)
 
   /* ---------- lighting ---------- */
   L.sweepAng = kf(t, [[0, -2.7], [2.4, 1.3, ease.linear]])
@@ -491,8 +499,10 @@ export function computeState(t, time) {
   const w6 = w(t, 17.1, 17.9)
   if (w6 > 0) {
     const hm = ((hour % 24) + 24) % 24
-    const dayF = smooth(range(hm, 5.8, 7.2)) * (1 - smooth(range(hm, 18.6, 20.2)))
-    const sunset = Math.min(1, gauss(hm, 18.9, 0.8) + 0.6 * gauss(hm, 6.3, 0.5))
+    let dayF = smooth(range(hm, 5.8, 7.2)) * (1 - smooth(range(hm, 18.6, 20.2)))
+    let sunset = Math.min(1, gauss(hm, 18.9, 0.8) + 0.6 * gauss(hm, 6.3, 0.5))
+    dayF = lerp(dayF, 0.3, calm)
+    sunset *= 1 - calm
     tA.copy(P.moon).lerp(P.warmWhite, dayF).lerp(P.amber, sunset * 0.85)
     L.keyColor.lerp(tA, w6)
     key = lerp(key, 0.5 + 1.15 * dayF + 0.2 * sunset, w6)
@@ -505,7 +515,7 @@ export function computeState(t, time) {
     room = lerp(room, 0.85, w6)
     roomBase = lerp(roomBase, 0.03 + 0.05 * (1 - dayF), w6)
   }
-  const w8 = w(t, 25.2, 26.1)
+  const w8 = w(t, 26.0, 26.9)
   key = lerp(key, 1.3, w8)
   fill = lerp(fill, 0.8, w8)
   rim = lerp(rim, 0.9, w8)
@@ -540,15 +550,16 @@ export function computeState(t, time) {
   S.bgTop.lerp(P.d5t, x); S.bgBot.lerp(P.d5b, x)
   if (w6 > 0) {
     skyAt(hour, tA, tB)
-    const soften = 0.28 * w(t, 22.6, 23.0) * (1 - w(t, 24.3, 24.7))
-    tA.lerp(P.neutralT, soften); tB.lerp(P.neutralB, soften)
+    const skyCalm = Math.min(1, calm * 1.28)
+    tA.lerp(P.neutralT, skyCalm); tB.lerp(P.neutralB, skyCalm)
     S.bgTop.lerp(tA, w6); S.bgBot.lerp(tB, w6)
   }
   S.bgTop.lerp(P.studioT, w8); S.bgBot.lerp(P.studioB, w8)
 
   const lum = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
   const lm = 0.4 * lum(S.bgTop) + 0.6 * lum(S.bgBot)
-  S.inkLight = 1 - smooth(range(lm, 0.14, 0.32))
+  // text stays light through the week so it never flickers between light and dark
+  S.inkLight = lerp(1 - smooth(range(lm, 0.14, 0.32)), 1, Math.min(1, calm / 0.72))
   S.ink.copy(P.inkDark).lerp(P.inkLight, S.inkLight)
   S.accent.copy(P.oxblood).lerp(P.ember, S.inkLight)
 
@@ -563,13 +574,15 @@ export function computeState(t, time) {
     const df = clamp((hm - 5.8) / (19.8 - 5.8))
     const up = Math.sin(Math.PI * df)
     const nf = S.night
-    const sx = lerp(0.12 + 0.76 * df, 0.78, nf)
-    const sy = lerp(0.8 - 0.58 * up, 0.2, nf)
+    // during the week the glow settles behind the device instead of racing across the sky
+    const sx = lerp(lerp(0.12 + 0.76 * df, 0.78, nf), m ? 0.5 : 0.36, calm / 0.72)
+    const sy = lerp(lerp(0.8 - 0.58 * up, 0.2, nf), m ? 0.36 : 0.46, calm / 0.72)
     tA.copy(P.glowSun).lerp(P.amber, Math.min(1, gauss(hm, 18.9, 0.7) + 0.5 * gauss(hm, 6.4, 0.5))).lerp(P.glowMoon, nf)
+    tA.lerp(P.glowMoon, calm)
     S.glowColor.lerp(tA, w6)
     S.glowX = lerp(S.glowX, sx, w6)
     S.glowY = lerp(S.glowY, sy, w6)
-    ga = lerp(ga, lerp(0.55 + 0.25 * (1 - up), 0.3, nf), w6)
+    ga = lerp(ga, lerp(lerp(0.55 + 0.25 * (1 - up), 0.3, nf), 0.34, calm), w6)
     S.glowR = lerp(S.glowR, 0.45, w6)
   }
   S.glowColor.lerp(P.glowStudio, w8)
